@@ -1,0 +1,23 @@
+{
+  "cxxNamespace": ["nitrocache"],
+  "ios": {
+    "iosModuleName": "NitroCache"
+  },
+  "android": {
+    "androidNamespace": ["nitrocache"],
+    "androidCxxLibName": "nitrocache"
+  },
+  "autolinking": {
+    "NitroCache": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "NitroCache"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "NitroCache"
+      }
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}

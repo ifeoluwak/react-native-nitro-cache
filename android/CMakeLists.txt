@@ -16,6 +16,18 @@ include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/nitrocache+autolinking
 # Set up local includes
 include_directories("src/main/cpp" "../cpp")
 
+# Headers for C++ integration with react-native-nitro-fetch (package or hoisted node_modules)
+foreach(
+  _nitro_fetch_include
+  "${CMAKE_SOURCE_DIR}/../node_modules/react-native-nitro-fetch/nitrogen/generated/shared/c++"
+  "${CMAKE_SOURCE_DIR}/../../node_modules/react-native-nitro-fetch/nitrogen/generated/shared/c++"
+)
+  if(EXISTS "${_nitro_fetch_include}")
+    include_directories("${_nitro_fetch_include}")
+    break()
+  endif()
+endforeach()
+
 
 find_library(LOG_LIB log)
 

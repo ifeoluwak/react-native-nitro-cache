@@ -6,7 +6,9 @@ import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 
 export default function App() {
   const get = async () => {
-    const result = await NitroCacheHybridObject.get('https://www.google.com');
+    const result = await NitroCacheHybridObject.get(
+      'https://join.ostrom.de/svgs/logo-green-dark.svg'
+    );
     console.log(result);
   };
   useEffect(() => {

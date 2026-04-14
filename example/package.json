@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "postinstall": "patch-package",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
@@ -32,6 +33,7 @@
     "@react-native/typescript-config": "0.85.0",
     "@types/react": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "patch-package": "^8.0.1",
     "react-native-builder-bob": "^0.41.0",
     "react-native-monorepo-config": "^0.3.3",
     "vite": "^7.1.1",

@@ -11,9 +11,19 @@
     "NitroCache": {
       "all": {
         "language": "c++",
-        "implementationClassName": "NitroCache"
+        "implementationClassName": "HybridNitroCache"
+      }
+    },
+    "NitroCacheFolder": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "NitroCacheFolder"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "NitroCacheFolder"
       }
     }
   },
-  "ignorePaths": ["node_modules"]
+  "ignorePaths": ["node_modules", "example/node_modules"]
 }

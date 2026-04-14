@@ -2,12 +2,16 @@
 
 #include "HybridNitroCacheSpec.hpp"
 #include "HybridNitroFetchSpec.hpp"
+#include "HybridNitroCacheFolderSpec.hpp"
 
+#include <filesystem>
+#include <optional>
+#include <string>
 
 namespace margelo::nitro::nitrocache {
-    class NitroCache: public HybridNitroCacheSpec {
+    class HybridNitroCache: public HybridNitroCacheSpec {
         public:
-            NitroCache();
+            HybridNitroCache();
             std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>> get(const std::string& url) override;
             std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>> getOrFetch(const std::string& url, const std::optional<CacheOptions>& options) override;
             std::shared_ptr<Promise<std::variant<nitro::NullType, std::shared_ptr<ArrayBuffer>>>> getBuffer(const std::string& url) override;
@@ -20,6 +24,10 @@ namespace margelo::nitro::nitrocache {
             std::shared_ptr<Promise<std::vector<CacheEntry>>> getEntries() override;
     
         private:
+            std::filesystem::path resolveCacheRoot() const;
+
             std::shared_ptr<margelo::nitro::nitrofetch::HybridNitroFetchSpec> nitroFetch;
+            std::optional<std::string> _cacheDirectoryFromConfig;
+            std::shared_ptr<nitro::nitrocache::HybridNitroCacheFolderSpec> folderManager;
     };
 };

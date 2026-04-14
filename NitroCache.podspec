@@ -10,7 +10,8 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported }
+  # Swift C++ interop (CxxStdlib) requires iOS 16+; RN's min_ios_version_supported is often lower.
+  s.platforms    = { :ios => '16.0' }
   s.source       = { :git => "https://github.com/ifeoluwak/react-native-nitro-cache.git", :tag => "#{s.version}" }
 
   s.source_files = [
@@ -21,6 +22,7 @@ Pod::Spec.new do |s|
 
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
+  s.dependency 'NitroFetch'
 
   load 'nitrogen/generated/ios/NitroCache+autolinking.rb'
   add_nitrogen_files(s)

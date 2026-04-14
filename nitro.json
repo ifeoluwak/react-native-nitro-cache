@@ -9,12 +9,8 @@
   },
   "autolinking": {
     "NitroCache": {
-      "ios": {
-        "language": "swift",
-        "implementationClassName": "NitroCache"
-      },
-      "android": {
-        "language": "kotlin",
+      "all": {
+        "language": "c++",
         "implementationClassName": "NitroCache"
       }
     }

@@ -46,7 +46,6 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
 
   func getCacheDirectory() throws -> String {
     let fm = FileManager.default
-    print("getCacheDirectory is called in swift")
     guard let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask).first else {
       throw NSError(
         domain: "NitroCache",
@@ -56,8 +55,52 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
     }
     let url = caches.appendingPathComponent("nitro-cache", isDirectory: true)
     try fm.createDirectory(at: url, withIntermediateDirectories: true)
-    print("getCacheDirectory is, url.path: \(url.path)")
     return url.path
+  }
+
+  func deleteFile(relativePath: String) throws -> Bool {
+    guard Self.isSafeRelativePath(relativePath) else { return false }
+    let rootPath: String
+    do {
+      rootPath = try getCacheDirectory()
+    } catch {
+      return false
+    }
+    let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
+    let targetURL = rootURL.appendingPathComponent(relativePath, isDirectory: false)
+    let fm = FileManager.default
+    guard fm.fileExists(atPath: targetURL.path) else { return true }
+    do {
+      try fm.removeItem(at: targetURL)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  func clearCache() throws -> Bool {
+    let rootPath: String
+    do {
+      rootPath = try getCacheDirectory()
+    } catch {
+      return false
+    }
+    let fm = FileManager.default
+    let names: [String]
+    do {
+      names = try fm.contentsOfDirectory(atPath: rootPath)
+    } catch {
+      return false
+    }
+    for name in names {
+      let path = (rootPath as NSString).appendingPathComponent(name)
+      do {
+        try fm.removeItem(atPath: path)
+      } catch {
+        return false
+      }
+    }
+    return true
   }
 
   func setMaxConcurrentDownloads(max: Double) throws {
@@ -65,7 +108,6 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
   }
 
   func downloadFile(url: String, relativePath: String) throws -> Promise<DownloadResult> {
-    print("downloadFile is called in swift, url: \(url), relativePath: \(relativePath)")
     let promise = Promise<DownloadResult>()
     Task {
       do {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Text, View, StyleSheet, Image } from 'react-native';
 import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 
@@ -7,15 +7,31 @@ import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 // const result = multiply(3, 7);
 
 export default function App() {
-  const [result, setResult] = useState(null);
+  // const [result, setResult] = useState(null);
   const get = async () => {
     const res = await NitroCacheHybridObject.getOrFetch(
-      'https://join.ostrom.de/images/tariff-plang-header.back.png'
+      // 'https://join.ostrom.de/images/tariff-plang-header.back.png'
+      'https://picsum.photos/200/300'
     );
     console.log('result from js ', res);
-    if (res) {
-      setResult(res.url);
-    }
+    // if (res) {
+    //   setResult(res.url);
+    // }
+    // const exists = NitroCacheHybridObject.has(
+    //   'https://join.ostrom.de/images/tariff-plang-header.back.png'
+    // );
+    // console.log('exists ', exists);
+    // const stats = await NitroCacheHybridObject.getStats();
+    // console.log('stats ', stats);
+    // const entries = await NitroCacheHybridObject.getEntries();
+    // console.log('entries ', entries);
+    // const buffer = await NitroCacheHybridObject.getBuffer(
+    //   'https://join.ostrom.de/images/tariff-plang-header.back.png'
+    // );
+    // how to log the buffer
+    // console.log('buffer ', buffer?.byteLength);
+    // const cleared = await NitroCacheHybridObject.clear();
+    // console.log('clear result ', cleared);
   };
   // const get = async () => {
   //   const result = await fetch('https://join.ostrom.de/images/tariff-plang-header.back.png');
@@ -30,15 +46,8 @@ export default function App() {
     <View style={styles.container}>
       <Text>Result</Text>
       <Image
-        // source={{ uri: 'https://join.ostrom.de/images/tariff-plang-header.back.png' }}
         source={{
-          // uri: 'file:///Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/CF0CB150-7F5E-45EA-8C90-DCF113C7D5D2/Library/Caches/nitro-cache/tariff-plang-header.back.png',
-          // uri: 'file:///Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/967B62B6-FC36-41DD-8224-12879899FEA8/Library/Caches/nitro-cache/tariff-plang-header.back.png',
-          // uri: 'file:///Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/967B62B6-FC36-41DD-8224-12879899FEA8/Library/Caches/nitro-cache/tariff-plang-header.back.png',
-          // uri: 'file:///Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/967B62B6-FC36-41DD-8224-12879899FEA8/Library/Caches/nitro-cache/tariff-plang-header.back.png'
-          uri: `file://${result}`,
-          // uri: `file://Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/3652985E-8350-4393-BD13-3939CDF81969/Library/Caches/nitro-cache`,
-          // uri: `file:///Users/ifeoluwaking/Library/Developer/CoreSimulator/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/3652985E-8350-4393-BD13-3939CDF81969/Library/Caches/nitro-cache/tariff-plang-header.back.png`,
+          uri: 'https://join.ostrom.de/images/tariff-plang-header.back.png',
         }}
         onError={(e) => {
           console.log(e.nativeEvent.error);

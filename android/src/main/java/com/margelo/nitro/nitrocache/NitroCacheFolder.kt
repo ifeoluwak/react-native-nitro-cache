@@ -56,6 +56,26 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
     DownloadGate.setMaxParallel(max.toInt())
   }
 
+  override fun deleteFile(relativePath: String): Boolean {
+    if (!isSafeRelativePath(relativePath)) return false
+    return try {
+      val f = File(getCacheDirectory(), relativePath)
+      if (!f.exists()) true else f.deleteRecursively()
+    } catch (_: Throwable) {
+      false
+    }
+  }
+
+  override fun clearCache(): Boolean {
+    return try {
+      val root = File(getCacheDirectory())
+      val children = root.listFiles() ?: return true
+      children.all { it.deleteRecursively() }
+    } catch (_: Throwable) {
+      false
+    }
+  }
+
   override fun downloadFile(url: String, relativePath: String): Promise<DownloadResult> {
     val promise = Promise<DownloadResult>()
     if (!isSafeRelativePath(relativePath)) {

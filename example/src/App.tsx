@@ -9,7 +9,7 @@ import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 export default function App() {
   const [result, setResult] = useState(null);
   const get = async () => {
-    const res = await NitroCacheHybridObject.get(
+    const res = await NitroCacheHybridObject.getOrFetch(
       'https://join.ostrom.de/images/tariff-plang-header.back.png'
     );
     console.log('result from js ', res);

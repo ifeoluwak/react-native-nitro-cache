@@ -18,16 +18,6 @@
 #include "Promise.hpp"
 #include "ArrayBuffer.hpp"
 
-using CacheMap = std::unordered_map<std::string, std::pair<std::string, std::string>>;
-
-class CacheStorage
-{
-public:
-    static CacheMap cache;
-};
-
-CacheMap CacheStorage::cache;
-
 // std::shared_ptr<margelo::nitro::ArrayBuffer> toArrayBuffer(
 //     const margelo::nitro::nitrofetch::NitroResponse& response) {
 //   const std::optional<std::string>& raw = response.bodyBytes.has_value()
@@ -46,6 +36,23 @@ CacheMap CacheStorage::cache;
 
 namespace margelo::nitro::nitrocache
 {
+
+    struct FileEntry {
+        double size;
+        std::string file_path;
+        std::string content_type;
+    };
+    using CacheMap = std::unordered_map<std::string, FileEntry>;
+    using CacheEntryResult = std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>>;
+
+    class CacheStorage
+    {
+    public:
+        static CacheMap cache;
+    };
+
+    CacheMap CacheStorage::cache;
+
 
     namespace
     {
@@ -147,6 +154,9 @@ namespace margelo::nitro::nitrocache
             fwrite(res.contentType.c_str(), 1, mime_len, file);
         }
 
+        const uint32_t size = static_cast<uint32_t>(res.byteCount);
+        fwrite(reinterpret_cast<const char *>(&size), sizeof(size), 1, file);
+
         fclose(file);
     }
 
@@ -155,15 +165,11 @@ namespace margelo::nitro::nitrocache
         uint32_t url_len;
         uint32_t path_len;
         uint32_t mime_len;
-
-        // std::string url;
-        // std::string url;
-        // std::string url;
+        uint32_t size_len;
 
         std::string path = kPlatformCachePath.string() + "/jj.dat";
 
         FILE *file = fopen(path.c_str(), "rb");
-        // file.open("jj.dat", std::ios::in|std::ios::binary);
 
         while (true)
         {
@@ -197,22 +203,18 @@ namespace margelo::nitro::nitrocache
             mime_type[mime_len] = '\0';
             fread(&mime_type, 1, mime_len, file);
 
-            // std::cout << "FOund url length ---" << url_len << std::endl;
+            fread(&size_len, sizeof(size_len), 1, file);
+
             std::cout << "FOund url ---" << std::string(url) << std::endl;
             std::cout << "FOund file path ---" << std::string(file_path) << std::endl;
             std::cout << "FOund mime type ---" << std::string(mime_type) << std::endl;
-            // std::cout << "FOund url 2" << url << std::endl;
-            // for (size_t i = 0; i < url_len; i++)
-            // {
-            //     /* code */
-            //     if (url[i]) {
-            //         printf("char is %c\n", url[i]);
-            //     }
-            // }
+            std::cout << "FOund size ---" << size_len << std::endl;
 
             std::string full_path = kPlatformCachePath.string() + "/" + std::string(file_path);
 
-            CacheStorage::cache.emplace(std::string(url), std::make_pair(full_path, std::string(mime_type)));
+            CacheStorage::cache.emplace(std::string(url), FileEntry{
+                (double)size_len, file_path, mime_type
+            });
 
             break;
         };
@@ -286,7 +288,7 @@ namespace margelo::nitro::nitrocache
         }
     }
 
-    std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>> HybridNitroCache::get(const std::string &url)
+    CacheEntryResult HybridNitroCache::get(const std::string &url)
     {
         std::cout << "get is" << url << std::endl;
         // check if the url is in the cache
@@ -294,26 +296,25 @@ namespace margelo::nitro::nitrocache
         if (iterator != CacheStorage::cache.end())
         {
             auto value = iterator->second;
-            std::cout << "url is in the cache" << value.first << std::endl;
+            std::cout << "url is in the cache" << value.file_path << std::endl;
             CacheEntry entry;
-            entry.url = value.first;
+            entry.url = kPlatformCachePath.string() + "/" + value.file_path;
             entry.buffer = margelo::nitro::ArrayBuffer::allocate(0);
-            entry.size = 0;
+            entry.size = value.size;
             entry.expiry = std::time(nullptr);
-            entry.contentType = value.second;
+            entry.contentType = value.content_type;
             return Promise<std::variant<nitro::NullType, CacheEntry>>::resolved(std::variant<nitro::NullType, CacheEntry>(entry));
         }
         return Promise<std::variant<nitro::NullType, CacheEntry>>::resolved(std::variant<nitro::NullType, CacheEntry>(nitro::null));
     }
 
-    std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>> HybridNitroCache::getOrFetch(const std::string &url, const std::optional<CacheOptions> &options)
+    CacheEntryResult HybridNitroCache::getOrFetch(const std::string &url, const std::optional<CacheOptions> &options)
     {
 
-        // auto entry = get(url);
-        // std::cout << "entry is" << entry->isResolved() << std::endl;
-        // if (entry->isResolved()) {
-        //     return entry;
-        // }
+        auto entry = get(url);
+        if (entry->isResolved()) {
+            return entry;
+        }
 
         const std::string relativePath = url.substr(url.find_last_of('/') + 1); // cacheRelativeFileKey(url);
         std::cout << "relativePath is" << relativePath << std::endl;
@@ -326,33 +327,25 @@ namespace margelo::nitro::nitrocache
                 std::cout << "DownloadResult is" << result.statusCode << std::endl;
                 if (result.statusCode < 200.0 || result.statusCode >= 300.0)
                 {
-                    return std::variant<nitro::NullType,
- CacheEntry>(nitro::null);
+                    return std::variant<nitro::NullType, CacheEntry>(nitro::null);
                 }
                 CacheEntry entry;
-                entry.url = url;
+                entry.url = result.filePath;
                 entry.buffer = margelo::nitro::ArrayBuffer::allocate(0);
                 entry.size = result.byteCount;
                 entry.expiry = static_cast<double>(std::time(nullptr));
-              entry.contentType = result.contentType
+                entry.contentType = result.contentType
                 .empty() ? std::string("application/octet-stream") : result.contentType;
-              CacheStorage::cache[url] = std::make_pair(std::string(result.filePath),
-                                                        std::string(result.contentType));
-
-                // std::fstream file;
-                // file.open("record.bin", std::ios::binary);
-
-                // file << CacheStorage::cache;
+                CacheStorage::cache[url] = FileEntry{result.byteCount, std::string(result.filePath),
+                                                        std::string(result.contentType)};
 
                 saveMapToDisk(url, result);
 
-                return std::variant<nitro::NullType,
- CacheEntry>(entry);
+                return std::variant<nitro::NullType, CacheEntry>(entry);
             }
             catch (...)
             {
-                return std::variant<nitro::NullType,
- CacheEntry>(nitro::null);
+                return std::variant<nitro::NullType, CacheEntry>(nitro::null);
             } });
     };
 

@@ -1,12 +1,14 @@
 package com.margelo.nitro.nitrocache
 
 import android.app.Application
+import android.webkit.MimeTypeMap
 import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.core.Promise
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 @Suppress("PrivateApi")
 private fun currentApplication(): Application {
@@ -76,12 +78,9 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
     }
   }
 
-  override fun downloadFile(url: String, relativePath: String): Promise<DownloadResult> {
+  @Suppress("UNUSED_PARAMETER")
+  override fun downloadFile(url: String): Promise<DownloadResult> {
     val promise = Promise<DownloadResult>()
-    if (!isSafeRelativePath(relativePath)) {
-      promise.reject(RuntimeException("relativePath must be relative and cannot contain '..'"))
-      return promise
-    }
     val parsed = try {
       URL(url)
     } catch (e: Throwable) {
@@ -96,7 +95,7 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
     Thread {
       try {
         DownloadGate.acquire()
-        val result = downloadBlocking(url, relativePath)
+        val result = downloadBlocking(url)
         promise.resolve(result)
       } catch (e: Throwable) {
         promise.reject(e)
@@ -108,10 +107,26 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
     return promise
   }
 
-  private fun downloadBlocking(url: String, relativePath: String): DownloadResult {
+  override fun hashURL(url: String): String {
+    val bytes = url.toByteArray(Charsets.UTF_8)
+    val md = MessageDigest.getInstance("SHA-256")
+    val digest = md.digest(bytes)
+    return digest.joinToString("") { b -> "%02x".format(b.toInt() and 0xFF) }
+  }
+
+  private fun normalizedMimeType(contentType: String): String {
+    val primary = contentType.substringBefore(';', missingDelimiterValue = contentType).trim().lowercase()
+    return primary.ifEmpty { "application/octet-stream" }
+  }
+
+  private fun fileExtensionFromContentType(contentType: String): String {
+    val mime = normalizedMimeType(contentType)
+    val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+    return if (ext.isNullOrEmpty()) "bin" else ext.lowercase()
+  }
+
+  private fun downloadBlocking(url: String): DownloadResult {
     val root = File(getCacheDirectory())
-    val outFile = File(root, relativePath)
-    outFile.parentFile?.mkdirs()
 
     val conn = (URL(url).openConnection() as HttpURLConnection).apply {
       instanceFollowRedirects = true
@@ -126,6 +141,14 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
         throw RuntimeException("HTTP $code")
       }
       val contentType = conn.contentType ?: "application/octet-stream"
+      val ext = fileExtensionFromContentType(contentType)
+      val hash = hashURL(url)
+      val relative = "$hash.$ext"
+      if (!isSafeRelativePath(relative)) {
+        throw RuntimeException("Derived relative path is invalid")
+      }
+      val outFile = File(root, relative)
+      outFile.parentFile?.mkdirs()
       conn.inputStream.use { input ->
         FileOutputStream(outFile, false).use { output ->
           val buf = ByteArray(64 * 1024)

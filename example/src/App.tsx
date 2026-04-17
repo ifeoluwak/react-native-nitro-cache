@@ -1,71 +1,89 @@
-import { useEffect } from 'react';
-import { Text, View, StyleSheet, Image } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Text, View, StyleSheet, Image, FlatList, Button } from 'react-native';
 import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 
 // import { fetch } from 'react-native-nitro-fetch'
 
 // const result = multiply(3, 7);
 
-export default function App() {
-  // const [result, setResult] = useState(null);
-  const get = async () => {
-    const res = await NitroCacheHybridObject.getOrFetch(
-      // 'https://join.ostrom.de/images/tariff-plang-header.back.png'
-      'https://picsum.photos/200/300'
-    );
-    console.log('result from js ', res);
-    // if (res) {
-    //   setResult(res.url);
-    // }
-    // const exists = NitroCacheHybridObject.has(
-    //   'https://join.ostrom.de/images/tariff-plang-header.back.png'
-    // );
-    // console.log('exists ', exists);
-    // const stats = await NitroCacheHybridObject.getStats();
-    // console.log('stats ', stats);
-    // const entries = await NitroCacheHybridObject.getEntries();
-    // console.log('entries ', entries);
-    // const buffer = await NitroCacheHybridObject.getBuffer(
-    //   'https://join.ostrom.de/images/tariff-plang-header.back.png'
-    // );
-    // how to log the buffer
-    // console.log('buffer ', buffer?.byteLength);
-    // const cleared = await NitroCacheHybridObject.clear();
-    // console.log('clear result ', cleared);
-  };
-  // const get = async () => {
-  //   const result = await fetch('https://join.ostrom.de/images/tariff-plang-header.back.png');
-  //   const json = await result.json();
-  //   console.log("result from js 2 ", json);
-  // };
-  useEffect(() => {
-    get();
-  }, []);
+// 'https://picsum.photos/250/250',
+// '/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/CE42B521-AB31-4F64-83C5-BD69E19D4107/Library/Caches/nitro-cache/4bd5b3c1ab9d19afd32121a08d6a8fe1d0c6aec6c471f46a7aa8dd1c3af27f72.jpeg'
 
+// 'Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/B69DF0B0-EB08-4268-8DD3-058599FAEF1A/Library/Caches/nitro-cache/4bd5b3c1ab9d19afd32121a08d6a8fe1d0c6aec6c471f46a7aa8dd1c3af27f72.jpeg'
+
+const imgUrls = [
+  'https://join.ostrom.de/images/tariff-plang-header.back.png',
+  'https://picsum.photos/200/200',
+  'https://picsum.photos/300/300',
+  // 'https://picsum.photos/400/400',
+  // 'https://picsum.photos/250/250',
+  // 'https://picsum.photos/150/150',
+];
+
+export default function App() {
+  const [showImages, setShowImages] = useState(false);
   return (
     <View style={styles.container}>
       <Text>Result</Text>
-      <Image
-        source={{
-          uri: 'https://join.ostrom.de/images/tariff-plang-header.back.png',
+      <Button
+        title="Get"
+        onPress={() => {
+          NitroCacheHybridObject.clear();
         }}
-        onError={(e) => {
-          console.log(e.nativeEvent.error);
-        }}
-        style={styles.image}
       />
+      <Button
+        title="Show Images"
+        onPress={() => {
+          setShowImages(true);
+        }}
+      />
+      {showImages && (
+        <FlatList
+          data={imgUrls}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => <ImageComponent url={item} />}
+        />
+      )}
     </View>
   );
 }
+
+const ImageComponent = ({ url }: { url: string }) => {
+  const [result, setResult] = useState<string | null>(null);
+  const get = async (u: string) => {
+    // console.log('got hereeeeeeeeeeeee');
+    const res = await NitroCacheHybridObject.getOrFetch(u);
+    // console.log('url', url, res?.url);
+    if (res) {
+      setResult(res.url);
+    }
+  };
+  useEffect(() => {
+    if (url) {
+      get(url);
+    }
+  }, [url]);
+
+  return (
+    <Image
+      source={{ uri: `file://${result}` }}
+      style={styles.image}
+      onError={() => {
+        // console.log(e.nativeEvent.error);
+      }}
+    />
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 100,
   },
   image: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
   },
 });

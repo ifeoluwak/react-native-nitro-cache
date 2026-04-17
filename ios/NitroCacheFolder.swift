@@ -1,5 +1,7 @@
 import Foundation
 import NitroModules
+import CryptoKit
+import UniformTypeIdentifiers
 
 /// Limits parallel downloads (FlatList-safe). Tunable via `setMaxConcurrentDownloads`.
 private final class NitroCacheDownloadGate: @unchecked Sendable {
@@ -107,14 +109,13 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
     NitroCacheDownloadGate.shared.setMaxParallel(Int(max))
   }
 
-  func downloadFile(url: String, relativePath: String) throws -> Promise<DownloadResult> {
+  func downloadFile(url: String) throws -> Promise<DownloadResult> {
     let promise = Promise<DownloadResult>()
     Task {
       do {
         let result = try await Self.downloadFileAsync(
           folder: self,
-          urlString: url,
-          relativePath: relativePath
+          urlString: url
         )
         promise.resolve(withResult: result)
       } catch {
@@ -136,16 +137,8 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
 
   private static func downloadFileAsync(
     folder: NitroCacheFolder,
-    urlString: String,
-    relativePath: String
+    urlString: String
   ) async throws -> DownloadResult {
-    guard isSafeRelativePath(relativePath) else {
-      throw NSError(
-        domain: "NitroCache",
-        code: 10,
-        userInfo: [NSLocalizedDescriptionKey: "relativePath must be relative and cannot contain '..'"]
-      )
-    }
     guard let remote = URL(string: urlString),
           let scheme = remote.scheme?.lowercased(),
           scheme == "http" || scheme == "https" else {
@@ -168,10 +161,7 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
 
     let rootPath = try folder.getCacheDirectory()
     let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
-    let targetURL = rootURL.appendingPathComponent(relativePath, isDirectory: false)
-    let parent = targetURL.deletingLastPathComponent()
     let fm = FileManager.default
-    try fm.createDirectory(at: parent, withIntermediateDirectories: true)
 
     let request = URLRequest(url: remote)
     let (tmpURL, response) = try await urlSession.download(for: request)
@@ -193,6 +183,21 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
       )
     }
 
+    let contentType = http.value(forHTTPHeaderField: "Content-Type")
+      ?? "application/octet-stream"
+    let ext = fileExtension(fromContentType: contentType)
+    let hash = folder.hashURL(url: urlString)
+    let relative = "\(hash).\(ext)"
+    guard isSafeRelativePath(relative) else {
+      try? fm.removeItem(at: tmpURL)
+      throw NSError(
+        domain: "NitroCache",
+        code: 10,
+        userInfo: [NSLocalizedDescriptionKey: "Derived relative path is invalid"]
+      )
+    }
+    let targetURL = rootURL.appendingPathComponent(relative, isDirectory: false)
+
     if fm.fileExists(atPath: targetURL.path) {
       try fm.removeItem(at: targetURL)
     }
@@ -200,8 +205,6 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
 
     let attrs = try fm.attributesOfItem(atPath: targetURL.path)
     let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
-    let contentType = http.value(forHTTPHeaderField: "Content-Type")
-      ?? "application/octet-stream"
 
     return DownloadResult(
       filePath: targetURL.path,
@@ -209,5 +212,32 @@ final class NitroCacheFolder: HybridNitroCacheFolderSpec {
       statusCode: Double(status),
       contentType: contentType
     )
+  }
+
+  /// MIME primary type + subtype, lowercased, without parameters.
+  private static func normalizedMimeType(_ contentType: String) -> String {
+    let trimmed = contentType.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
+      .first
+      .map(String.init)?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased() ?? "application/octet-stream"
+    return trimmed.isEmpty ? "application/octet-stream" : trimmed
+  }
+
+  /// Preferred filename extension (no dot), from system MIME mapping; `bin` if unknown.
+  private static func fileExtension(fromContentType contentType: String) -> String {
+    let mime = normalizedMimeType(contentType)
+    if let ut = UTType(mimeType: mime), let ext = ut.preferredFilenameExtension, !ext.isEmpty {
+      return ext.lowercased()
+    }
+    return "bin"
+  }
+  
+  func hashURL(url: String) -> String {
+    let inputData = Data(url.utf8)
+    let hashed = SHA256.hash(data: inputData)
+    
+    // Convert the 32-byte digest into a 64-character hex string
+    return hashed.compactMap { String(format: "%02x", $0) }.joined()
   }
 }

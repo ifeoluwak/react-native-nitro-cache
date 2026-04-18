@@ -270,6 +270,8 @@ namespace margelo::nitro::nitrocache
                 CacheStorage::cache[hash] = new_entry;
                 saveEntryToDisk(hash, new_entry);
 
+                std::cout << "downloaded new file " << std::endl;
+
                 // return the old entry with the full path
                 return std::variant<nitro::NullType, CacheEntry>(entry);
             }

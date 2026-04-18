@@ -40,7 +40,9 @@ private object DownloadGate {
 
   fun release() {
     synchronized(lock) {
-      running--
+      if (running > 0) {
+        running--
+      }
       lock.notifyAll()
     }
   }
@@ -93,14 +95,18 @@ class NitroCacheFolder : HybridNitroCacheFolderSpec() {
     }
 
     Thread {
+      var acquired = false
       try {
         DownloadGate.acquire()
+        acquired = true
         val result = downloadBlocking(url)
         promise.resolve(result)
       } catch (e: Throwable) {
         promise.reject(e)
       } finally {
-        DownloadGate.release()
+        if (acquired) {
+          DownloadGate.release()
+        }
       }
     }.start()
 

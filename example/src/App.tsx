@@ -11,13 +11,25 @@ import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 
 // 'Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/B69DF0B0-EB08-4268-8DD3-058599FAEF1A/Library/Caches/nitro-cache/4bd5b3c1ab9d19afd32121a08d6a8fe1d0c6aec6c471f46a7aa8dd1c3af27f72.jpeg'
 
-const imgUrls = [
-  'https://join.ostrom.de/images/tariff-plang-header.back.png',
-  'https://picsum.photos/200/200',
-  'https://picsum.photos/300/300',
-  // 'https://picsum.photos/400/400',
-  // 'https://picsum.photos/250/250',
-  // 'https://picsum.photos/150/150',
+// const imgUrls = [
+//   'https://join.ostrom.de/images/tariff-plang-header.back.png',
+//   'https://picsum.photos/200/200',
+//   'https://picsum.photos/300/300',
+//   'https://picsum.photos/400/400',
+//   'https://picsum.photos/250/250',
+//   'https://picsum.photos/150/150',
+//   'https://picsum.photos/280/280',
+//   'https://picsum.photos/320/320',
+// ];
+const imgUrls2 = [
+  'https://picsum.photos/200/200?grayscale&blur=2',
+  'https://picsum.photos/300/300?grayscale&blur=2',
+  'https://picsum.photos/400/400?grayscale&blur=2',
+  'https://picsum.photos/250/250?grayscale&blur=2',
+  'https://picsum.photos/150/150?grayscale&blur=2',
+  'https://picsum.photos/280/280?grayscale&blur=2',
+  'https://picsum.photos/320/320?grayscale&blur=2',
+  'https://picsum.photos/420/420?grayscale&blur=2',
 ];
 
 export default function App() {
@@ -39,7 +51,7 @@ export default function App() {
       />
       {showImages && (
         <FlatList
-          data={imgUrls}
+          data={imgUrls2}
           keyExtractor={(item) => item}
           renderItem={({ item }) => <ImageComponent url={item} />}
         />
@@ -65,13 +77,19 @@ const ImageComponent = ({ url }: { url: string }) => {
   }, [url]);
 
   return (
-    <Image
-      source={{ uri: `file://${result}` }}
-      style={styles.image}
-      onError={() => {
-        // console.log(e.nativeEvent.error);
-      }}
-    />
+    <>
+      <Image
+        source={{ uri: `file://${result}` }}
+        style={styles.image}
+        onError={() => {
+          // console.log(e.nativeEvent.error);
+        }}
+      />
+      <Button
+        title="Delete"
+        onPress={() => NitroCacheHybridObject.remove(url)}
+      />
+    </>
   );
 };
 

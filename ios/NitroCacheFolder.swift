@@ -4,35 +4,39 @@ import CryptoKit
 import UniformTypeIdentifiers
 
 /// Limits parallel downloads (FlatList-safe). Tunable via `setMaxConcurrentDownloads`.
+///
+/// `NSCondition` is both the mutex and the condition variable; `wait`/`broadcast`
+/// must only be called while the condition's own lock is held.
 private final class NitroCacheDownloadGate: @unchecked Sendable {
   static let shared = NitroCacheDownloadGate()
-  private let lock = NSLock()
   private let condition = NSCondition()
   private var maxParallel = 4
   private var running = 0
 
   func setMaxParallel(_ value: Int) {
-    lock.lock()
+    condition.lock()
     maxParallel = max(1, min(value, 64))
     condition.broadcast()
-    lock.unlock()
+    condition.unlock()
   }
 
   /// Blocks the calling thread until a slot is available.
   func acquire() {
-    lock.lock()
+    condition.lock()
     while running >= maxParallel {
       condition.wait()
     }
     running += 1
-    lock.unlock()
+    condition.unlock()
   }
 
   func release() {
-    lock.lock()
-    running -= 1
+    condition.lock()
+    if running > 0 {
+      running -= 1
+    }
     condition.broadcast()
-    lock.unlock()
+    condition.unlock()
   }
 }
 

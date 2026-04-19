@@ -22,14 +22,19 @@ import { NitroCacheHybridObject } from 'react-native-nitro-cache';
 //   'https://picsum.photos/320/320',
 // ];
 const imgUrls2 = [
-  'https://picsum.photos/200/200?grayscale&blur=2',
-  'https://picsum.photos/300/300?grayscale&blur=2',
-  'https://picsum.photos/400/400?grayscale&blur=2',
-  'https://picsum.photos/250/250?grayscale&blur=2',
-  'https://picsum.photos/150/150?grayscale&blur=2',
-  'https://picsum.photos/280/280?grayscale&blur=2',
-  'https://picsum.photos/320/320?grayscale&blur=2',
-  'https://picsum.photos/420/420?grayscale&blur=2',
+  'https://picsum.photos/200/200?blur=2',
+  'https://picsum.photos/300/300?blur=2',
+  'https://picsum.photos/400/400?blur=2',
+  'https://picsum.photos/250/250?blur=2',
+  'https://picsum.photos/150/150?blur=2',
+  'https://picsum.photos/280/280?blur=2',
+  'https://picsum.photos/320/320?blur=2',
+  'https://picsum.photos/420/420?blur=2',
+  'https://picsum.photos/520/520?blur=2',
+  'https://picsum.photos/620/620?blur=2',
+  'https://picsum.photos/720/720?blur=2',
+  'https://picsum.photos/820/820?blur=2',
+  'https://picsum.photos/920/920?blur=2',
 ];
 
 export default function App() {
@@ -38,9 +43,17 @@ export default function App() {
     <View style={styles.container}>
       <Text>Result</Text>
       <Button
-        title="Get"
+        title="Clear all"
         onPress={() => {
           NitroCacheHybridObject.clear();
+        }}
+      />
+      <Button
+        title="Entries"
+        onPress={() => {
+          NitroCacheHybridObject.getEntries().then((entries) => {
+            console.log('entries', entries);
+          });
         }}
       />
       <Button
@@ -63,9 +76,7 @@ export default function App() {
 const ImageComponent = ({ url }: { url: string }) => {
   const [result, setResult] = useState<string | null>(null);
   const get = async (u: string) => {
-    // console.log('got hereeeeeeeeeeeee');
     const res = await NitroCacheHybridObject.getOrFetch(u);
-    // console.log('url', url, res?.url);
     if (res) {
       setResult(res.url);
     }
@@ -101,7 +112,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   image: {
-    width: 150,
-    height: 150,
+    width: 90,
+    height: 90,
   },
 });

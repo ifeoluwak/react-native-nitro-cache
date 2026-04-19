@@ -1,7 +1,7 @@
 import type { HybridObject } from 'react-native-nitro-modules';
 
 export type CacheOptions = {
-  ttl?: number;
+  ttl?: number; // in seconds
   forceRefresh?: boolean;
 };
 
@@ -9,6 +9,7 @@ export type CacheEntry = {
   url: string;
   size: number;
   contentType: string;
+  expiresAt: number; // in seconds, 0 for no expiration [default]
 };
 
 export type CacheStats = {

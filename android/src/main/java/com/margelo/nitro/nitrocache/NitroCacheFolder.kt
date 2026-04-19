@@ -18,7 +18,7 @@ private fun currentApplication(): Application {
 }
 
 private object DownloadGate {
-  private var maxParallel = 4
+  private var maxParallel = 6
   private var running = 0
   private val lock = Object()
 

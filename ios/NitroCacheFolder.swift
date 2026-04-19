@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 private final class NitroCacheDownloadGate: @unchecked Sendable {
   static let shared = NitroCacheDownloadGate()
   private let condition = NSCondition()
-  private var maxParallel = 4
+  private var maxParallel = 6
   private var running = 0
 
   func setMaxParallel(_ value: Int) {

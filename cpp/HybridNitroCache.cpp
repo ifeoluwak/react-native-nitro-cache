@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <NitroModules/ArrayBuffer.hpp>
+#include <NitroModules/Promise.hpp>
 
 #if defined(__ANDROID__)
   #include <android/log.h>
@@ -332,47 +333,71 @@ namespace margelo::nitro::nitrocache
 
         NC_LOG("android getOrFetching ");
 
-       auto download = [=, folderManagerAsync = folderManager](){
-            try
-            {
-                std::shared_ptr<Promise<DownloadResult>> downloadPromise = folderManagerAsync->downloadFile(url);
-                DownloadResult result = downloadPromise->await().get();
-                if (result.statusCode < 200.0 || result.statusCode >= 300.0)
-                {
-                    return std::variant<nitro::NullType, CacheEntry>(nitro::null);
+        auto startDownload = [this, hash, url, options]() -> CacheEntryResult {
+            auto outPromise = CacheEntryPromise::create();
+            auto downloadPromise = folderManager->downloadFile(url);
+        
+            downloadPromise->addOnResolvedListener(
+                [this, hash, options, outPromise](const DownloadResult& result) {
+                    try {
+                        if (result.statusCode < 200.0 || result.statusCode >= 300.0) {
+                            NC_LOG("download non-2xx: %d", (int)result.statusCode);
+                            outPromise->resolve(nitro::null);
+                            return;
+                        }
+        
+                        CacheEntry entry;
+                        entry.expiresAt = 0;
+                        if (options.has_value() && options->ttl.value_or(0) > 0) {
+                            auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::system_clock::now().time_since_epoch()).count();
+                            entry.expiresAt = static_cast<double>(now) + options->ttl.value() * 1000;
+                        }
+                        entry.url = result.filePath;
+                        entry.size = result.byteCount;
+                        entry.contentType = result.contentType.empty()
+                            ? std::string("application/octet-stream")
+                            : result.contentType;
+        
+                        const std::string relativePath =
+                            result.filePath.substr(result.filePath.find_last_of('/') + 1);
+        
+                        CacheEntry new_entry(entry);
+                        new_entry.url = relativePath;
+        
+                        {
+                            std::unique_lock<std::mutex> async_lock(mutex);
+                            CacheStorage::cache[hash] = new_entry;
+                        }
+        
+                        saveEntryToDisk(hash, new_entry);
+        
+                        // Return entry with the full absolute path
+                        outPromise->resolve(std::variant<nitro::NullType, CacheEntry>(entry));
+                    } catch (const std::exception& e) {
+                        NC_LOG("download post-processing failed: %s", e.what());
+                        outPromise->resolve(nitro::null);
+                    } catch (...) {
+                        NC_LOG("download post-processing failed: unknown");
+                        outPromise->resolve(nitro::null);
+                    }
                 }
-                NC_LOG("Downloaded file successfully, saving to cache");
-                CacheEntry entry;
-                entry.expiresAt = 0;
-                if (options.has_value() && options->ttl.value_or(0) > 0) {
-                    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-                    entry.expiresAt = static_cast<double>(now) + options->ttl.value() * 1000;
+            );
+        
+            downloadPromise->addOnRejectedListener(
+                [outPromise](const std::exception_ptr& err) {
+                    try {
+                        if (err) std::rethrow_exception(err);
+                    } catch (const std::exception& e) {
+                        NC_LOG("download rejected: %s", e.what());
+                    } catch (...) {
+                        NC_LOG("download rejected: unknown");
+                    }
+                    outPromise->resolve(nitro::null);
                 }
-                entry.url = result.filePath;
-                entry.size = result.byteCount;
-                entry.contentType = result.contentType.empty() ? std::string("application/octet-stream") : result.contentType;
-                const std::string relativePath = result.filePath.substr(result.filePath.find_last_of('/') + 1);
-                
-                 // new entry to use relative path e.g 2939djdej39.jpeg
-                CacheEntry new_entry(entry);
-                new_entry.url = relativePath;
-
-                std::unique_lock<std::mutex> async_lock(mutex);
-                CacheStorage::cache[hash] = new_entry;
-                async_lock.unlock();
-
-                saveEntryToDisk(hash, new_entry);
-
-                // std::cout << "downloaded new file " << std::endl;
-
-                // return the entry with the full path
-                return std::variant<nitro::NullType, CacheEntry>(entry);
-            }
-            catch (const std::exception &e)
-            {
-              NC_LOG("in cpp error %s", e.what());
-                return std::variant<nitro::NullType, CacheEntry>(nitro::null);
-            }
+            );
+        
+            return outPromise;
         };
 
         auto iterator = CacheStorage::cache.find(hash);
@@ -386,7 +411,7 @@ namespace margelo::nitro::nitrocache
                 lock.unlock();
                 folderManager->deleteFile(value.url);
                 saveAllEntriesToDisk();
-                return CacheEntryPromise::async(download);
+                return startDownload();
             }
             // if the entry has an expiration time and it is expired, download the file
             if (value.expiresAt > 0) {
@@ -397,7 +422,7 @@ namespace margelo::nitro::nitrocache
                     lock.unlock();
                     folderManager->deleteFile(value.url);
                     saveAllEntriesToDisk();
-                    return CacheEntryPromise::async(download);
+                    return startDownload();
                 }
             }
             value.url = kPlatformCachePath.string() + "/" + value.url;
@@ -406,7 +431,8 @@ namespace margelo::nitro::nitrocache
         }
 
         // if the entry is not in the cache, download the file
-        return CacheEntryPromise::async(download);
+        lock.unlock();
+        return startDownload();
     };
 
     FileBuffer HybridNitroCache::getBuffer(const std::string &url)

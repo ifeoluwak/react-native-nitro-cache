@@ -10,6 +10,11 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./jest-mock": {
+      "source": "./src/jest-mock.ts",
+      "types": "./lib/typescript/src/jest-mock.d.ts",
+      "default": "./lib/module/jest-mock.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -65,7 +70,9 @@
     "c++",
     "zero-bridge",
     "react-native-fast-image",
-    "expo-image"
+    "expo-image",
+    "offline",
+    "offline-first"
   ],
   "repository": {
     "type": "git",

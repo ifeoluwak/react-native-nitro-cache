@@ -1,14 +1,14 @@
 # react-native-nitro-cache
 
-**High-performance, General-purpose unified cache for images, videos, and files in React Native.**
+**High-performance, General-purpose unified cache for images, videos, audio, and files in React Native.**
 
 Built from the ground up with **Nitro Modules** and C++ for speed and efficiency. Delivers a simple, focused API that just works.
 
 New Architecture support.
 
-## Why another cache library?
+## Why nitro-cache?
 
-Most React Native caching libraries are tied to the `<Image>` component and predate the New Architecture. `nitro-cache` is a **general-purpose** cache for any HTTP(S) asset — images, JSON blobs, small binaries — built on **Nitro Modules / JSI** with a C++ core. It exposes introspection APIs (`getEntries`, `getStats`), direct buffer access (`getBuffer`), and works with any rendering primitive, not just `<Image>`. See the [comparison](#comparison) below.
+Most React Native caching libraries are tied to the `<Image>` component and predate the New Architecture. `nitro-cache` is a **general-purpose** cache for any HTTP(S) asset — images, videos, audio, JSON blobs, small binaries — built on **Nitro Modules / JSI** with a C++ core. It exposes introspection APIs (`getEntries`, `getStats`), direct buffer access (`getBuffer`), and works with any rendering primitive, not just `<Image>`. See the [comparison](#comparison) below.
 
 ## Features
 
@@ -37,6 +37,16 @@ cd ios && pod install
 ### Android
 
 No extra steps — autolinking handles it.
+
+### Expo
+
+Works with Expo via [Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/) (`expo prebuild`) or a [development build](https://docs.expo.dev/develop/development-builds/introduction/).
+
+```sh
+npx expo prebuild
+```
+
+> ❌ **Not compatible with Expo Go.** Like all libraries with custom native code (and all Nitro Modules), `react-native-nitro-cache` requires a development build or a prebuilt project. Expo Go ships a fixed set of native modules and cannot load this one.
 
 ## Quick start
 
@@ -166,6 +176,49 @@ Filenames are derived as `<sha256(url)>.<ext>`, where `<ext>` comes from the res
 Legend: ✅ supported · ⚠️ partial / caveats · ❌ not supported · 🚧 planned
 
 > _Last verified: April 2026. Capabilities of other libraries change over time — please open an issue if a row is out of date._
+## Testing
+
+`react-native-nitro-cache` is a JSI / Nitro Module — its hybrid object is constructed at import time and reaches into native code that doesn't exist in Node. If a Jest test transitively imports this package, it will throw at module-load time.
+
+A drop-in Jest mock ships with the package. Add this to your Jest setup file (e.g. `jest.setup.ts`):
+
+```ts
+jest.mock('react-native-nitro-cache', () =>
+  require('react-native-nitro-cache/jest-mock')
+);
+```
+
+…and make sure that file is referenced from your Jest config:
+
+```ts
+// jest.config.ts
+export default {
+  preset: 'react-native',
+  setupFiles: ['./jest.setup.ts'],
+};
+```
+
+The mock exposes the same `rnNitroCache` object with no-op implementations:
+
+- async methods resolve to `null` / `void` / empty stats / empty array
+- `has()` returns `false`
+
+Override per-test with `jest.spyOn` when you need a specific value:
+
+```ts
+import { rnNitroCache } from 'react-native-nitro-cache';
+
+it('renders the cached image', async () => {
+  jest.spyOn(rnNitroCache, 'getOrFetch').mockResolvedValueOnce({
+    url: '/tmp/cached.jpg',
+    size: 1024,
+    contentType: 'image/jpeg',
+    expiresAt: 0,
+  });
+
+  // ...render and assert
+});
+```
 
 ## License
 

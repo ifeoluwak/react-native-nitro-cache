@@ -1,6 +1,6 @@
 {
   "name": "react-native-nitro-cache",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React Native high-performance cache library for images, videos and files. Built with Nitro Modules (C++).",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

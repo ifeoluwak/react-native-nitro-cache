@@ -1,7 +1,7 @@
 {
   "name": "react-native-nitro-cache",
   "version": "0.1.0",
-  "description": "Fast file caching",
+  "description": "React Native high-performance cache library for images, videos and files. Built with Nitro Modules (C++).",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -46,7 +46,26 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "react native cache",
+    "image cache",
+    "video cache",
+    "asset cache",
+    "file cache",
+    "media cache",
+    "nitro",
+    "nitro modules",
+    "nitro-cache",
+    "fast cache",
+    "offline cache",
+    "caching",
+    "react-native-nitro",
+    "zero-copy",
+    "jsi",
+    "c++",
+    "zero-bridge",
+    "react-native-fast-image",
+    "expo-image"
   ],
   "repository": {
     "type": "git",

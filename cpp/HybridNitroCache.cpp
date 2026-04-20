@@ -3,10 +3,7 @@
 #include "HybridNitroCacheFolderSpec.hpp"
 #include <NitroModules/HybridObjectRegistry.hpp>
 
-#include <iostream>
 #include <filesystem>
-#include <fstream>
-#include <functional>
 #include <stdio.h>
 
 #include <NitroModules/ArrayBuffer.hpp>
@@ -23,24 +20,13 @@
 namespace margelo::nitro::nitrocache
 {
     using CacheMap = std::unordered_map<std::string, CacheEntry>;
+
     using CacheEntryResult = std::shared_ptr<Promise<std::variant<nitro::NullType, CacheEntry>>>;
     using FileBuffer = std::shared_ptr<Promise<std::variant<nitro::NullType, std::shared_ptr<ArrayBuffer>>>>;
     using CacheEntryPromise = Promise<std::variant<nitro::NullType, CacheEntry>>;
 
-    std::mutex mutex;
-
-    class CacheStorage
-    {
-    public:
-        // the unordered map of the cache entries
-        static CacheMap cache;
-    };
-
-    CacheMap CacheStorage::cache;
-
     namespace
     {
-        constexpr const char *kNitroFetchHybridName = "NitroFetch";
         constexpr const char *kNitroCacheFolderHybridName = "NitroCacheFolder";
         constexpr const char *kCacheFileName = "entries.dat";
         constexpr const char *kFormatVersionFileName = "format_version.dat";
@@ -51,6 +37,9 @@ namespace margelo::nitro::nitrocache
         std::once_flag kPlatformCachePathOnce;
         std::filesystem::path kPlatformCachePath;
         bool kPlatformCachePathValid = false;
+
+        CacheMap cache;
+        std::mutex mutex;
     }
 
     std::filesystem::path HybridNitroCache::resolveCacheRoot() const
@@ -119,7 +108,7 @@ namespace margelo::nitro::nitrocache
         fclose(file);
     }
 
-    void saveAllEntriesToDisk()
+    void saveAllEntriesToDisk(CacheMap &cache)
     {
         // lock the file mutex to prevent multiple threads from writing to the cache file at the same time
         std::lock_guard<std::mutex> lock(mutex);
@@ -132,7 +121,7 @@ namespace margelo::nitro::nitrocache
         }
 
         // write the entries
-        for (const auto &it: CacheStorage::cache) {
+        for (const auto &it: cache) {
             const std::string& hash = it.first;
             const CacheEntry& entry = it.second;
 
@@ -161,7 +150,7 @@ namespace margelo::nitro::nitrocache
         fclose(file);
     }
 
-    void readMapToMemomry()
+    void readMapToMemomry(CacheMap &cache)
     {
         uint32_t hash_len;
         uint32_t path_len;
@@ -214,14 +203,18 @@ namespace margelo::nitro::nitrocache
 
             std::string full_path = kPlatformCachePath.string() + "/" + std::string(file_path.data());
 
-            std::cout << "hash path is " << hash.data() << std::endl;
+            #ifndef NDEBUG
+                NC_LOG("hash path is %s", hash.data());
+            #endif
 
-            CacheStorage::cache.emplace(std::string(hash.data()), CacheEntry{
+            cache.emplace(std::string(hash.data()), CacheEntry{
                 std::string(file_path.data()), (double)size_len, std::string(mime_type.data()), (double)expires_at
             });
         };
 
-        std::cout << "finished reading map to memory .. " << std::endl;
+        #ifndef NDEBUG
+            NC_LOG("finished reading map to memory .. ");
+        #endif
         fclose(file);
     }
 
@@ -243,7 +236,9 @@ namespace margelo::nitro::nitrocache
                 FILE *format_version_file = fopen(format_version_path.c_str(), "rb");
                 // is this the first time the app is running?
                 if (format_version_file == NULL) {
-                    NC_LOG("format_version.dat file not found, creating new one");
+                    #ifndef NDEBUG
+                        NC_LOG("format_version.dat file not found, creating new one");
+                    #endif
                     // create format_version.dat file and save the cache format version
                     FILE *file = fopen(format_version_path.c_str(), "wb");
                     if (file == NULL) {
@@ -252,16 +247,23 @@ namespace margelo::nitro::nitrocache
                     fwrite(reinterpret_cast<const char *>(&kCacheFormatVersion), sizeof(kCacheFormatVersion), 1, file);
                     loadedFormatVersion = kCacheFormatVersion;
                     fclose(file);
-                    NC_LOG("saved new format version to format_version.dat file");
+                    #ifndef NDEBUG
+                        NC_LOG("saved new format version to format_version.dat file");
+                    #endif
                 } else {
                     // read the cache format version from the format_version.dat file
                     fread(&loadedFormatVersion, sizeof(loadedFormatVersion), 1, format_version_file);
-                    NC_LOG("read cache format version from format_version.dat file: %d", (int)loadedFormatVersion);
+                    
+                    #ifndef NDEBUG
+                        NC_LOG("read cache format version from format_version.dat file: %d", (int)loadedFormatVersion);
+                    #endif
                     fclose(format_version_file);
                 }
 
                 if (loadedFormatVersion != kCacheFormatVersion) {
-                    NC_LOG("cache format version is not supported");
+                    #ifndef NDEBUG
+                        NC_LOG("cache format version is not supported. clearing cache and starting fresh");
+                    #endif
                     // clear all the cache files and start fresh
                     folderManager->clearCache();
                     // save new format version to the format_version.dat file
@@ -271,25 +273,28 @@ namespace margelo::nitro::nitrocache
                     }
                     fwrite(reinterpret_cast<const char *>(&kCacheFormatVersion), sizeof(kCacheFormatVersion), 1, file);
                     loadedFormatVersion = kCacheFormatVersion;
-                    NC_LOG("updated new format version to format_version.dat file");
+                    #ifndef NDEBUG
+                        NC_LOG("updated new format version to format_version.dat file");
+                    #endif
                     fclose(file);
                     return;
                 }
 
-
-
                 // get entries.dat file
                 std::filesystem::path entries_path = kPlatformCachePath.string() + "/" + kCacheFileName;
-                NC_LOG("entries_path is %s", entries_path.c_str());
+                #ifndef NDEBUG
+                    NC_LOG("entries_path is %s", entries_path.c_str());
+                #endif
                 if (std::filesystem::exists(entries_path)) {
-                    readMapToMemomry();
+                    readMapToMemomry(cache);
                 }
             }
             else
             {
-                std::cout << "NitroCache: cache root not set (call configure({ directory }) or ensure NitroCacheFolder is linked)"
-                          << std::endl;
-                          throw std::runtime_error("NitroCache: cache root not set");
+                #ifndef NDEBUG
+                    NC_LOG("NitroCache: cache root not set (call configure({ directory }) or ensure NitroCacheFolder is linked)");
+                #endif
+                throw std::runtime_error("NitroCache: cache root not set");
             }
         }
         else
@@ -304,18 +309,20 @@ namespace margelo::nitro::nitrocache
         // check if the url is in the cache
         std::string hash = folderManager->hashURL(url);
         std::unique_lock<std::mutex> lock(mutex);
-        CacheMap::iterator iterator = CacheStorage::cache.find(hash);
-        if (iterator != CacheStorage::cache.end())
+        CacheMap::iterator iterator = cache.find(hash);
+        if (iterator != cache.end())
         {
             CacheEntry value = iterator->second;
             if (value.expiresAt > 0) {
                 auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                 if (value.expiresAt < static_cast<double>(now)) {
-                    NC_LOG("entry is expired, removing from cache");
-                    CacheStorage::cache.erase(hash);
+                    #ifndef NDEBUG
+                        NC_LOG("entry is expired, removing from cache");
+                    #endif
+                    cache.erase(hash);
                     lock.unlock();
                     folderManager->deleteFile(value.url);
-                    saveAllEntriesToDisk();
+                    saveAllEntriesToDisk(cache);
                     return CacheEntryPromise::resolved(std::variant<nitro::NullType, CacheEntry>(nitro::null));
                 }
             }
@@ -330,9 +337,6 @@ namespace margelo::nitro::nitrocache
         std::string hash = folderManager->hashURL(url);
 
         std::unique_lock<std::mutex> lock(mutex);
-
-        NC_LOG("android getOrFetching ");
-
         auto startDownload = [this, hash, url, options]() -> CacheEntryResult {
             auto outPromise = CacheEntryPromise::create();
             auto downloadPromise = folderManager->downloadFile(url);
@@ -341,7 +345,6 @@ namespace margelo::nitro::nitrocache
                 [this, hash, options, outPromise](const DownloadResult& result) {
                     try {
                         if (result.statusCode < 200.0 || result.statusCode >= 300.0) {
-                            NC_LOG("download non-2xx: %d", (int)result.statusCode);
                             outPromise->resolve(nitro::null);
                             return;
                         }
@@ -367,7 +370,7 @@ namespace margelo::nitro::nitrocache
         
                         {
                             std::unique_lock<std::mutex> async_lock(mutex);
-                            CacheStorage::cache[hash] = new_entry;
+                            cache[hash] = new_entry;
                         }
         
                         saveEntryToDisk(hash, new_entry);
@@ -375,10 +378,14 @@ namespace margelo::nitro::nitrocache
                         // Return entry with the full absolute path
                         outPromise->resolve(std::variant<nitro::NullType, CacheEntry>(entry));
                     } catch (const std::exception& e) {
-                        NC_LOG("download post-processing failed: %s", e.what());
+                        #ifndef NDEBUG
+                            NC_LOG("download post-processing failed: %s", e.what());
+                        #endif
                         outPromise->resolve(nitro::null);
                     } catch (...) {
-                        NC_LOG("download post-processing failed: unknown");
+                        #ifndef NDEBUG
+                            NC_LOG("download post-processing failed: unknown");
+                        #endif
                         outPromise->resolve(nitro::null);
                     }
                 }
@@ -389,9 +396,13 @@ namespace margelo::nitro::nitrocache
                     try {
                         if (err) std::rethrow_exception(err);
                     } catch (const std::exception& e) {
-                        NC_LOG("download rejected: %s", e.what());
+                        #ifndef NDEBUG
+                            NC_LOG("download rejected: %s", e.what());
+                        #endif
                     } catch (...) {
-                        NC_LOG("download rejected: unknown");
+                        #ifndef NDEBUG
+                            NC_LOG("download rejected: unknown");
+                        #endif
                     }
                     outPromise->resolve(nitro::null);
                 }
@@ -400,28 +411,32 @@ namespace margelo::nitro::nitrocache
             return outPromise;
         };
 
-        auto iterator = CacheStorage::cache.find(hash);
+        auto iterator = cache.find(hash);
 
-        if (iterator != CacheStorage::cache.end()) {
+        if (iterator != cache.end()) {
             auto value = iterator->second;
             // if force refresh is true, download the file
             if (options.has_value() && options->forceRefresh.value_or(false)) {
-                NC_LOG("force refreshing %s", url.c_str());
-                CacheStorage::cache.erase(hash);
+                #ifndef NDEBUG
+                    NC_LOG("force refreshing %s", url.c_str());
+                #endif
+                cache.erase(hash);
                 lock.unlock();
                 folderManager->deleteFile(value.url);
-                saveAllEntriesToDisk();
+                saveAllEntriesToDisk(cache);
                 return startDownload();
             }
             // if the entry has an expiration time and it is expired, download the file
             if (value.expiresAt > 0) {
                 auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                 if (value.expiresAt < static_cast<double>(now)) {
-                    NC_LOG("entry is expired, downloading new file");
-                    CacheStorage::cache.erase(hash);
+                    #ifndef NDEBUG
+                        NC_LOG("entry is expired, downloading new file");
+                    #endif
+                    cache.erase(hash);
                     lock.unlock();
                     folderManager->deleteFile(value.url);
-                    saveAllEntriesToDisk();
+                    saveAllEntriesToDisk(cache);
                     return startDownload();
                 }
             }
@@ -442,14 +457,14 @@ namespace margelo::nitro::nitrocache
         std::string filePath;
         size_t size;
         {
-            std::lock_guard<std::mutex> lock(mutex);
-            auto it = CacheStorage::cache.find(hash);
-            if (it == CacheStorage::cache.end()) {
+            std::lock_guard<std::mutex> lock(mutex); // deconstructs after the scope ends
+            auto it = cache.find(hash);
+            if (it == cache.end()) {
                 return Promise<std::variant<nitro::NullType, std::shared_ptr<ArrayBuffer>>>::resolved(nitro::null);
             }
             filePath = kPlatformCachePath.string() + "/" + it->second.url;
             size = static_cast<size_t>(it->second.size);
-        }   // lock released
+        }
         // now read the file without the lock
         FILE *file = fopen(filePath.c_str(), "rb");
         if (file != NULL) {
@@ -469,9 +484,9 @@ namespace margelo::nitro::nitrocache
           std::unique_lock<std::mutex> lock(mutex);
           auto result = folderManager->clearCache();
           if (result) {
-            CacheStorage::cache.clear();
+            cache.clear();
             lock.unlock();
-            saveAllEntriesToDisk();
+            saveAllEntriesToDisk(cache);
             // we need to rewrite the format version since clearCache deletes all the files
             std::string format_version_path = kPlatformCachePath.string() + "/" + kFormatVersionFileName;
             FILE *file = fopen(format_version_path.c_str(), "wb");
@@ -482,7 +497,9 @@ namespace margelo::nitro::nitrocache
             fclose(file);
           }
         } else {
-            std::cout << "Folder is empty" << std::endl;
+            #ifndef NDEBUG
+                NC_LOG("Folder is empty");
+            #endif
         }
       return Promise<void>::resolved();
     };
@@ -491,14 +508,14 @@ namespace margelo::nitro::nitrocache
     {
         std::string hash = folderManager->hashURL(url);
         std::unique_lock<std::mutex> lock(mutex);
-        CacheMap::iterator iterator = CacheStorage::cache.find(hash);
-        if (iterator == CacheStorage::cache.end()) {
+        CacheMap::iterator iterator = cache.find(hash);
+        if (iterator == cache.end()) {
             return Promise<void>::resolved();
         }
         folderManager->deleteFile(iterator->second.url);
-        CacheStorage::cache.erase(hash);
+        cache.erase(hash);
         lock.unlock();
-        saveAllEntriesToDisk();
+        saveAllEntriesToDisk(cache);
         return Promise<void>::resolved();
     }
 
@@ -506,16 +523,15 @@ namespace margelo::nitro::nitrocache
     {
         std::string hash = folderManager->hashURL(url);
         std::unique_lock<std::mutex> lock(mutex);
-        std::cout << "checking if hash is in the cache " << std::endl;
-        auto it = CacheStorage::cache.find(hash);
-        if (it != CacheStorage::cache.end()) {
+        auto it = cache.find(hash);
+        if (it != cache.end()) {
             if (it->second.expiresAt > 0) {
                 auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
                 if (it->second.expiresAt < static_cast<double>(now)) {
                     folderManager->deleteFile(it->second.url);
-                    CacheStorage::cache.erase(hash);
+                    cache.erase(hash);
                     lock.unlock();
-                    saveAllEntriesToDisk();
+                    saveAllEntriesToDisk(cache);
                     return false;
                 }
             }
@@ -526,12 +542,12 @@ namespace margelo::nitro::nitrocache
 
     std::shared_ptr<Promise<CacheStats>> HybridNitroCache::getStats()
     {
-        // lock the mutex to prevent multiple threads from reading the cache at the same time
+        // lock the mutex to prevent multiple threads from editing the cache at the same time
         std::lock_guard<std::mutex> lock(mutex);
         double totalEntries = 0;
         auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         double totalSize = 0;
-        for (auto it: CacheStorage::cache) {
+        for (auto it: cache) {
             if (it.second.expiresAt > 0) {
                 if (it.second.expiresAt < static_cast<double>(now)) {
                   continue;
@@ -545,11 +561,11 @@ namespace margelo::nitro::nitrocache
 
     std::shared_ptr<Promise<std::vector<CacheEntry>>> HybridNitroCache::getEntries()
     {
-        // lock the mutex to prevent multiple threads from reading the cache at the same time
+        // lock the mutex to prevent multiple threads from editing the cache at the same time
         std::lock_guard<std::mutex> lock(mutex);
         std::vector<CacheEntry> entries;
         auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        for (auto it: CacheStorage::cache) {
+        for (auto it: cache) {
             if (it.second.expiresAt > 0) {
                 if (it.second.expiresAt < static_cast<double>(now)) {
                     continue;

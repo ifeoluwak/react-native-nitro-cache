@@ -1,26 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, Image, FlatList, Button } from 'react-native';
-import { NitroCacheHybridObject } from 'react-native-nitro-cache';
+import { rnNitroCache } from 'react-native-nitro-cache';
 
-// import { fetch } from 'react-native-nitro-fetch'
-
-// const result = multiply(3, 7);
-
-// 'https://picsum.photos/250/250',
-// '/Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/CE42B521-AB31-4F64-83C5-BD69E19D4107/Library/Caches/nitro-cache/4bd5b3c1ab9d19afd32121a08d6a8fe1d0c6aec6c471f46a7aa8dd1c3af27f72.jpeg'
-
-// 'Devices/16AD3ADE-BDFC-4BBC-BE35-E07FBA45F087/data/Containers/Data/Application/B69DF0B0-EB08-4268-8DD3-058599FAEF1A/Library/Caches/nitro-cache/4bd5b3c1ab9d19afd32121a08d6a8fe1d0c6aec6c471f46a7aa8dd1c3af27f72.jpeg'
-
-// const imgUrls = [
-//   'https://join.ostrom.de/images/tariff-plang-header.back.png',
-//   'https://picsum.photos/200/200',
-//   'https://picsum.photos/300/300',
-//   'https://picsum.photos/400/400',
-//   'https://picsum.photos/250/250',
-//   'https://picsum.photos/150/150',
-//   'https://picsum.photos/280/280',
-//   'https://picsum.photos/320/320',
-// ];
 const imgUrls2 = [
   'https://picsum.photos/200/200?blur=2',
   'https://picsum.photos/300/300?blur=2',
@@ -45,14 +26,22 @@ export default function App() {
       <Button
         title="Clear all"
         onPress={() => {
-          NitroCacheHybridObject.clear();
+          rnNitroCache.clear();
         }}
       />
       <Button
         title="Entries"
         onPress={() => {
-          NitroCacheHybridObject.getEntries().then((entries) => {
+          rnNitroCache.getEntries().then((entries) => {
             console.log('entries', entries);
+          });
+        }}
+      />
+      <Button
+        title="Stats"
+        onPress={() => {
+          rnNitroCache.getStats().then((stats) => {
+            console.log('stats', stats);
           });
         }}
       />
@@ -67,6 +56,9 @@ export default function App() {
           data={imgUrls2}
           keyExtractor={(item) => item}
           renderItem={({ item }) => <ImageComponent url={item} />}
+          contentContainerStyle={{
+            rowGap: 10,
+          }}
         />
       )}
     </View>
@@ -76,7 +68,7 @@ export default function App() {
 const ImageComponent = ({ url }: { url: string }) => {
   const [result, setResult] = useState<string | null>(null);
   const get = async (u: string) => {
-    const res = await NitroCacheHybridObject.getOrFetch(u);
+    const res = await rnNitroCache.getOrFetch(u);
     if (res) {
       setResult(res.url);
     }
@@ -88,19 +80,32 @@ const ImageComponent = ({ url }: { url: string }) => {
   }, [url]);
 
   return (
-    <>
-      <Image
-        source={{ uri: `file://${result}` }}
-        style={styles.image}
-        onError={() => {
-          // console.log(e.nativeEvent.error);
+    <View style={{ width: '100%', flexDirection: 'row' }}>
+      <Image source={{ uri: `file://${result}` }} style={styles.image} />
+      <Button
+        title="Info"
+        onPress={() =>
+          rnNitroCache.get(url).then((entry) => {
+            console.log('entry', entry);
+          })
+        }
+      />
+      <Button
+        title="Has"
+        onPress={() => {
+          console.log('has', rnNitroCache.has(url));
         }}
       />
       <Button
-        title="Delete"
-        onPress={() => NitroCacheHybridObject.remove(url)}
+        title="Buffer"
+        onPress={() =>
+          rnNitroCache.getBuffer(url).then((buffer) => {
+            console.log('buffer', buffer?.byteLength);
+          })
+        }
       />
-    </>
+      <Button title="Delete" onPress={() => rnNitroCache.remove(url)} />
+    </View>
   );
 };
 

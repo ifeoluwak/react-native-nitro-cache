@@ -104,7 +104,6 @@
     "react": "19.2.3",
     "react-native": "0.85.0",
     "react-native-builder-bob": "^0.41.0",
-    "react-native-nitro-fetch": "1.0.1",
     "react-native-nitro-modules": "^0.35.4",
     "release-it": "^19.2.4",
     "turbo": "^2.8.21",
@@ -113,7 +112,6 @@
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-nitro-fetch": "*",
     "react-native-nitro-modules": "^0.35.4"
   },
   "workspaces": [

@@ -11180,7 +11180,6 @@ __metadata:
     react-native: "npm:0.85.0"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-monorepo-config: "npm:^0.3.3"
-    react-native-nitro-fetch: "npm:1.0.1"
     react-native-nitro-modules: "npm:^0.35.4"
     react-native-web: "npm:~0.21.1"
     vite: "npm:^7.1.1"
@@ -11215,7 +11214,6 @@ __metadata:
     react: "npm:19.2.3"
     react-native: "npm:0.85.0"
     react-native-builder-bob: "npm:^0.41.0"
-    react-native-nitro-fetch: "npm:1.0.1"
     react-native-nitro-modules: "npm:^0.35.4"
     release-it: "npm:^19.2.4"
     turbo: "npm:^2.8.21"
@@ -11223,27 +11221,9 @@ __metadata:
   peerDependencies:
     react: "*"
     react-native: "*"
-    react-native-nitro-fetch: "*"
     react-native-nitro-modules: ^0.35.4
   languageName: unknown
   linkType: soft
-
-"react-native-nitro-fetch@npm:1.0.1":
-  version: 1.0.1
-  resolution: "react-native-nitro-fetch@npm:1.0.1"
-  dependencies:
-    web-streams-polyfill: "npm:^4.2.0"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-    react-native-nitro-modules: ^0.35.2
-    react-native-worklets: ^0.8.0
-  peerDependenciesMeta:
-    react-native-worklets-core:
-      optional: true
-  checksum: 10c0/cbc58f6096e2b01f0bec6419ea921f73733bb71a4c13ff83f4dde27bd6b6336a39b2e1edb58bff1651456d131da27312aafed75cb1512d5f0aa32c308cbaa8d0
-  languageName: node
-  linkType: hard
 
 "react-native-nitro-modules@npm:^0.35.4":
   version: 0.35.4
@@ -13116,13 +13096,6 @@ __metadata:
   dependencies:
     defaults: "npm:^1.0.3"
   checksum: 10c0/5b61ca583a95e2dd85d7078400190efd452e05751a64accb8c06ce4db65d7e0b0cde9917d705e826a2e05cc2548f61efde115ffa374c3e436d04be45c889e5b4
-  languageName: node
-  linkType: hard
-
-"web-streams-polyfill@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "web-streams-polyfill@npm:4.2.0"
-  checksum: 10c0/d7a5ece7a073f4a687b193d8bc39610347179241a16a5591af6c7059f440242b9caf2fcf87b04d23e23c7d52c1cc1a2ef8470ab6d792d8150bf09beaf880fd36
   languageName: node
   linkType: hard
 

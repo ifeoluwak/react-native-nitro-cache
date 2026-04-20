@@ -1,7 +1,6 @@
 #pragma once
 
 #include "HybridNitroCacheSpec.hpp"
-#include "HybridNitroFetchSpec.hpp"
 #include "HybridNitroCacheFolderSpec.hpp"
 
 #include <filesystem>

@@ -22,7 +22,6 @@ Pod::Spec.new do |s|
 
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
-  s.dependency 'NitroFetch'
 
   load 'nitrogen/generated/ios/NitroCache+autolinking.rb'
   add_nitrogen_files(s)

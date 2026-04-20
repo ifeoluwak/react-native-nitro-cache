@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "postinstall": "patch-package",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
@@ -16,7 +15,6 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.0",
-    "react-native-nitro-fetch": "1.0.1",
     "react-native-nitro-modules": "^0.35.4",
     "react-native-web": "~0.21.1"
   },

@@ -115,5 +115,4 @@ android {
 dependencies {
   implementation "com.facebook.react:react-android"
   implementation project(":react-native-nitro-modules")
-  implementation project(':react-native-nitro-fetch')
 }

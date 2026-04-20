@@ -5,31 +5,6 @@ PODS:
   - hermes-engine/Pre-built (250829098.0.10)
   - NitroCache (0.1.0):
     - hermes-engine
-    - NitroFetch
-    - NitroModules
-    - RCTRequired
-    - RCTTypeSafety
-    - React-callinvoker
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - NitroFetch (1.0.1):
-    - hermes-engine
     - NitroModules
     - RCTRequired
     - RCTTypeSafety
@@ -1825,7 +1800,6 @@ DEPENDENCIES:
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - NitroCache (from `../..`)
-  - NitroFetch (from `../node_modules/react-native-nitro-fetch`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
@@ -1908,8 +1882,6 @@ EXTERNAL SOURCES:
     :tag: hermes-v250829098.0.10
   NitroCache:
     :path: "../.."
-  NitroFetch:
-    :path: "../node_modules/react-native-nitro-fetch"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
   RCTDeprecation:
@@ -2058,8 +2030,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FBLazyVector: c00c20551d40126351a6783c47ce75f5b374851b
   hermes-engine: e98404e2eef632cda24d0ce9e7fc4796438721cd
-  NitroCache: f2969a20f1fab5b00bf967a44e77f184c16e9215
-  NitroFetch: 023d3cd9c94518b51a82b2d075adc628cca2a4ad
+  NitroCache: c952ceef90c3da0e15d7cc5130cf1a652eb964f6
   NitroModules: 34dac28aead549182b66023e9126336548b521a5
   RCTDeprecation: 3bb167081b134461cfeb875ff7ae1945f8635257
   RCTRequired: 74839f55d5058a133a0bc4569b0afec750957f64

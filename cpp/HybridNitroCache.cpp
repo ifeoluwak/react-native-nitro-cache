@@ -44,10 +44,6 @@ namespace margelo::nitro::nitrocache
 
     std::filesystem::path HybridNitroCache::resolveCacheRoot() const
     {
-        if (_cacheDirectoryFromConfig.has_value() && !_cacheDirectoryFromConfig->empty())
-        {
-            return std::filesystem::path(*_cacheDirectoryFromConfig);
-        }
         std::call_once(kPlatformCachePathOnce, [&]()
                        {
             if (folderManager != nullptr) {
@@ -306,6 +302,8 @@ namespace margelo::nitro::nitrocache
 
     CacheEntryResult HybridNitroCache::get(const std::string &url)
     {
+        // TODO: validate if valid url
+        
         // check if the url is in the cache
         std::string hash = folderManager->hashURL(url);
         std::unique_lock<std::mutex> lock(mutex);

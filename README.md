@@ -1,21 +1,22 @@
 # react-native-nitro-cache
 
-**High-performance, General-purpose unified cache for images, videos, audio, and files in React Native.**
+**High-performance HTTP(S) file cache for React Native — built for offline-friendly workflows (PDFs, EPUBs, audio, video, binaries), not a single UI component.**
 
-Built from the ground up with **Nitro Modules** and C++ for speed and efficiency. Delivers a simple, focused API that just works.
+Built from the ground up with **Nitro Modules** and C++ for speed and efficiency. Delivers a small API (`getOrFetch`, `get`, `getBuffer`, …) you can use from any feature: document viewers, parsers, media players, background sync.
 
 New Architecture support.
 
 ## Why nitro-cache?
 
-Most React Native caching libraries are tied to the `<Image>` component and predate the New Architecture. `nitro-cache` is a **general-purpose** cache for any HTTP(S) asset — images, videos, audio, JSON blobs, small binaries — built on **Nitro Modules / JSI** with a C++ core. It exposes introspection APIs (`getEntries`, `getStats`), direct buffer access (`getBuffer`), and works with any rendering primitive, not just `<Image>`. See the [comparison](#comparison) below.
+Offline-capable apps usually need **reliable on-disk caching for arbitrary HTTP(S) downloads**: manifests, templates, receipts, training packs, media, and other assets that must be available when connectivity drops — not only assets rendered by a single UI primitive.
+
+`nitro-cache` is a **general-purpose** cache for any HTTP(S) asset, built on **Nitro Modules / JSI** with a C++ core. It exposes introspection APIs (`getEntries`, `getStats`), direct buffer access (`getBuffer`), TTL + forced refresh, and returns **absolute file paths** your app can pass to native viewers and parsers.
 
 ## Features
 
 - Simple API: easy to use focused primitives (`getOrFetch`, `get`, `remove`, `clear`, …)
-- General-purpose: any HTTP(S) asset (images, JSON blobs, small binaries), not tied to a specific UI pattern
+- General-purpose: any HTTP(S) asset (PDF, EPUB, audio, video, small binaries), not tied to a UI pattern
 - C++ cache core for blazing fast retrievals: in-memory index + Nitro bindings
-- Background downloading & streaming support
 - TTL and Force refresh support
 - New Architecture ready
 - Read a cached file as an `ArrayBuffer` for in-memory consumers
@@ -53,25 +54,22 @@ npx expo prebuild
 ```ts
 import { rnNitroCache } from 'react-native-nitro-cache';
 
-const entry = await rnNitroCache.getOrFetch(
-  'https://example.com/image.jpg'
-);
+const entry = await rnNitroCache.getOrFetch('https://cdn.example.com/docs/field-handbook.pdf', {
+  ttl: 60 * 60, // optional: keep fresh for 1 hour
+});
 
 if (entry) {
-  console.log(entry.url);         // absolute path on disk
-  console.log(entry.size);        // bytes
-  console.log(entry.contentType); // e.g. "image/jpeg"
-  console.log(entry.expiresAt); // e.g. 177789283673
+  console.log(entry.url); // absolute path on disk — hand this to a viewer/parser/player
+  console.log(entry.size); // bytes
+  console.log(entry.contentType); // e.g. "application/pdf"
+  console.log(entry.expiresAt); // 0 if no TTL; otherwise expiry time in ms since epoch
 }
 ```
 
-Use the returned path directly with `<Image>`:
+**Typical consumers**
 
-```tsx
-import { Image } from 'react-native';
-
-<Image source={{ uri: `file://${entry.url}` }} style={{ width: 200, height: 200 }} />
-```
+- Pass `entry.url` to a PDF/EPUB reader, media player, or file upload module.
+- Prefer disk paths for large documents; use `getBuffer(url)` only for intentionally small in-memory reads (see API section).
 
 ## API
 
@@ -85,8 +83,8 @@ Returns the cached entry if present and still valid; otherwise downloads the fil
 type CacheEntry = {
   url: string;         // absolute path to the file on disk
   size: number;        // bytes
-  contentType: string; // e.g. "image/jpeg"
-  expiresAt: number;   // unix seconds; 0 means no expiration
+  contentType: string; // e.g. "application/pdf" or "application/epub+zip"
+  expiresAt: number;   // 0 means no expiration; otherwise expiry instant in ms since epoch
 };
 
 type CacheOptions = {
@@ -99,12 +97,12 @@ type CacheOptions = {
 
 ```ts
 // Cache for 1 hour
-await rnNitroCache.getOrFetch('https://example.com/image.jpg', {
+await rnNitroCache.getOrFetch('https://cdn.example.com/docs/field-handbook.pdf', {
   ttl: 60 * 60,
 });
 
 // Force a fresh download even if a valid entry exists
-await rnNitroCache.getOrFetch('https://example.com/image.jpg', {
+await rnNitroCache.getOrFetch('https://cdn.example.com/books/onboarding-guide.epub', {
   forceRefresh: true,
 });
 ```
@@ -120,8 +118,8 @@ Synchronous existence check against the in-memory index.
 ### `getBuffer(url): Promise<ArrayBuffer | null>`
 
 Reads the cached file's bytes into an `ArrayBuffer`. Returns `null` if expired or if the URL isn't cached.
-- Use for small files (<10MB) like thumbnails, JSON, or small images.
-- For large files (videos, high-res images), use `get(url)` instead.
+- Use for small files (<10MB) you truly want fully in memory (tiny sidecar files, compact text, small binaries).
+- For large files (video, big PDFs, EPUBs, big downloads), use `get(url)` instead.
 - Attempting to load >100MB files as ArrayBuffer may cause out-of-memory crashes.
 
 ### `remove(url): Promise<void>`
@@ -161,21 +159,6 @@ Filenames are derived as `<sha256(url)>.<ext>`, where `<ext>` comes from the res
 - Only `http` and `https` URLs are supported.
 - This package depends on `react-native-nitro-modules`; see its docs for minimum RN versions.
 
-## Comparison
-
-| Capability | `react-native-nitro-cache` | `react-native-fast-image` | `expo-image` |
-| --- | :---: | :---: | :---: |
-| Unified (Images + Videos + Files) | ✅ | ⚠️ image-only | ⚠️ image-only |
-| New Architecture support | ✅ | ⚠️ community fork available | ✅ good |
-| JSI-based C++ | ✅ (Nitro + C++) | ❌ native modules | ❌ native modules |
-| Read cached bytes as `ArrayBuffer` | ✅ | ❌ | ❌ |
-| Inspect cache (`getEntries`, `getStats`) | ✅ | ❌ | ❌ |
-| Programmatic `remove(url)` | ✅ | ❌ | ⚠️ limited |
-| TTL / forced refresh | ✅ | ❌ | ❌ |
-
-Legend: ✅ supported · ⚠️ partial / caveats · ❌ not supported · 🚧 planned
-
-> _Last verified: April 2026. Capabilities of other libraries change over time — please open an issue if a row is out of date._
 ## Testing
 
 `react-native-nitro-cache` is a JSI / Nitro Module — its hybrid object is constructed at import time and reaches into native code that doesn't exist in Node. If a Jest test transitively imports this package, it will throw at module-load time.
@@ -208,11 +191,11 @@ Override per-test with `jest.spyOn` when you need a specific value:
 ```ts
 import { rnNitroCache } from 'react-native-nitro-cache';
 
-it('renders the cached image', async () => {
+it('opens the cached handbook PDF', async () => {
   jest.spyOn(rnNitroCache, 'getOrFetch').mockResolvedValueOnce({
-    url: '/tmp/cached.jpg',
+    url: '/tmp/cached.pdf',
     size: 1024,
-    contentType: 'image/jpeg',
+    contentType: 'application/pdf',
     expiresAt: 0,
   });
 

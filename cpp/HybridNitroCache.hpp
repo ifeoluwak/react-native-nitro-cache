@@ -22,8 +22,6 @@ namespace margelo::nitro::nitrocache {
     
         private:
             std::filesystem::path resolveCacheRoot() const;
-
-            std::optional<std::string> _cacheDirectoryFromConfig;
             std::shared_ptr<nitro::nitrocache::HybridNitroCacheFolderSpec> folderManager;
     };
 };

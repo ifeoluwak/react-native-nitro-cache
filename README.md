@@ -1,6 +1,6 @@
 # react-native-nitro-cache
 
-**High-performance HTTP(S) file cache for React Native — built for offline-friendly workflows (PDFs, EPUBs, audio, video, binaries), not a single UI component.**
+**High-performance HTTP(S) file cache for React Native built for offline-friendly workflows (PDFs, EPUBs, audio, video, binaries), not a single UI component.**
 
 Built from the ground up with **Nitro Modules** and C++ for speed and efficiency. Delivers a small API (`getOrFetch`, `get`, `getBuffer`, …) you can use from any feature: document viewers, parsers, media players, background sync.
 
@@ -8,7 +8,7 @@ New Architecture support.
 
 ## Why nitro-cache?
 
-Offline-capable apps usually need **reliable on-disk caching for arbitrary HTTP(S) downloads**: manifests, templates, receipts, training packs, media, and other assets that must be available when connectivity drops — not only assets rendered by a single UI primitive.
+Offline-capable apps usually need **reliable on-disk caching for arbitrary HTTP(S) downloads**: manifests, templates, receipts, training packs, media, and other assets that must be available when connectivity drops not only assets rendered by a single UI primitive.
 
 `nitro-cache` is a **general-purpose** cache for any HTTP(S) asset, built on **Nitro Modules / JSI** with a C++ core. It exposes introspection APIs (`getEntries`, `getStats`), direct buffer access (`getBuffer`), TTL + forced refresh, and returns **absolute file paths** your app can pass to native viewers and parsers.
 
@@ -161,7 +161,7 @@ Filenames are derived as `<sha256(url)>.<ext>`, where `<ext>` comes from the res
 
 ## Testing
 
-`react-native-nitro-cache` is a JSI / Nitro Module — its hybrid object is constructed at import time and reaches into native code that doesn't exist in Node. If a Jest test transitively imports this package, it will throw at module-load time.
+`react-native-nitro-cache` is a JSI / Nitro Module, its hybrid object is constructed at import time and reaches into native code that doesn't exist in Node. If a Jest test transitively imports this package, it will throw at module-load time.
 
 A drop-in Jest mock ships with the package. Add this to your Jest setup file (e.g. `jest.setup.ts`):
 

@@ -23,5 +23,6 @@ namespace margelo::nitro::nitrocache {
         private:
             std::filesystem::path resolveCacheRoot() const;
             std::shared_ptr<nitro::nitrocache::HybridNitroCacheFolderSpec> folderManager;
+            void evictLeastRecentlyUsed();
     };
 };

@@ -154,6 +154,20 @@ Because this is the OS-managed cache, the system may reclaim files under disk pr
 
 Filenames are derived as `<sha256(url)>.<ext>`, where `<ext>` comes from the response `Content-Type`.
 
+## Cache limits & eviction
+
+`nitro-cache` enforces soft size and entry-count caps. Once exceeded, the **least recently used** entries are evicted automatically.
+
+| | Trigger (high-water mark) | Pruned down to (low-water mark) |
+| --- | --- | --- |
+| Total cache size | 500 MB | 480 MB |
+| Entry count | 300 | 290 |
+
+When a `getOrFetch` call sees the cache above either high-water mark, it evicts the least-recently-used entries until **both** counters are below their low-water marks. Each successful read (`get`, `has`, `getBuffer`, or a `getOrFetch` cache hit) marks the entry as recently used and moves it to the front of the LRU list.
+
+
+If you want full manual control, use `remove(url)` to evict specific entries or `clear()` to wipe the entire cache.
+
 ## Notes & limitations
 
 - Only `http` and `https` URLs are supported.
